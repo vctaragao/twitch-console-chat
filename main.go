@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/vctaragao/twitch-chat/internal/twauth"
+	"github.com/vctaragao/twitch-chat/pkg/browser"
 )
 
 const (
@@ -34,10 +35,11 @@ func main() {
 	}
 
 	twitchAuthServer := twauth.NewServer(twauth.TwitchAuthParams{
-		Repo:     sqliteDB,
-		ClientID: clientID,
-		Secret:   secret,
-		Port:     ":7777",
+		Repo:           sqliteDB,
+		ClientID:       clientID,
+		Secret:         secret,
+		Port:           ":7777",
+		BrowserHandler: browser.NewBrowserHandler(),
 	})
 
 	twitchAuthServer.Start()

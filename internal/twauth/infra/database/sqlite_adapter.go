@@ -44,7 +44,11 @@ func (a *SqliteAdapter) CreateTables() error {
         FOREIGN KEY(auth_id) REFERENCES auth(id)
     )`)
 
-	return fmt.Errorf("unable to create scopes table: %w", err)
+	if err != nil {
+		return fmt.Errorf("unable to create scopes table: %w", err)
+	}
+
+	return nil
 }
 
 func (a *SqliteAdapter) InsertAuth(auth entity.AuthToken) (int, error) {

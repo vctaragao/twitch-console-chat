@@ -5,31 +5,36 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/vctaragao/twitch-chat/pkg/browser"
 )
 
 type (
 	TwitchAuthServer struct {
-		repo     Repository
-		server   *http.Server
-		clientID string
-		secret   string
-		port     string
+		repo           Repository
+		server         *http.Server
+		clientID       string
+		secret         string
+		port           string
+		browserHandler browser.BrowserHandler
 	}
 
 	TwitchAuthParams struct {
-		Repo     Repository
-		ClientID string
-		Secret   string
-		Port     string
+		Repo           Repository
+		ClientID       string
+		Secret         string
+		Port           string
+		BrowserHandler browser.BrowserHandler
 	}
 )
 
 func NewServer(params TwitchAuthParams) *TwitchAuthServer {
 	return &TwitchAuthServer{
-		repo:     params.Repo,
-		clientID: params.ClientID,
-		secret:   params.Secret,
-		port:     params.Port,
+		repo:           params.Repo,
+		clientID:       params.ClientID,
+		secret:         params.Secret,
+		port:           params.Port,
+		browserHandler: params.BrowserHandler,
 	}
 }
 
@@ -37,8 +42,13 @@ func (s *TwitchAuthServer) Start() {
 	authTokenService := NewAuthTokenService(s.repo)
 
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	mux.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
-		if err := Authenticate(s.clientID); err != nil {
+		if err := Authenticate(s.clientID, s.browserHandler); err != nil {
 			log.Printf("unable to authenticate user: %v\n", err)
 		}
 	})

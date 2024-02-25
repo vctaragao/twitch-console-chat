@@ -3,9 +3,9 @@ package twauth
 import (
 	"fmt"
 	"net/url"
-	"os/exec"
 
 	"github.com/google/uuid"
+	"github.com/vctaragao/twitch-chat/pkg/browser"
 )
 
 type twitchOAuthParams struct {
@@ -29,7 +29,7 @@ func (t *twitchOAuthParams) parseIntoUrl(url string) string {
 	)
 }
 
-func Authenticate(clientID string) error {
+func Authenticate(clientID string, browserHandler browser.BrowserHandler) error {
 	params := twitchOAuthParams{
 		clientID:     clientID,
 		forceVerify:  false,
@@ -41,11 +41,11 @@ func Authenticate(clientID string) error {
 
 	url, err := url.Parse(params.parseIntoUrl(TwitchOAuthUrl))
 	if err != nil {
-		return fmt.Errorf("unable to parse url: %v", err)
+		return fmt.Errorf("unable to parse url: %w", err)
 	}
 
-	if err := exec.Command("xdg-open", url.String()).Run(); err != nil {
-		return fmt.Errorf("unable to open browser for user authentification: %v", err)
+	if err := browserHandler.Open(url.String()); err != nil {
+		return fmt.Errorf("unable to open browser for user authentification: %w", err)
 	}
 
 	return nil
