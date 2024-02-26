@@ -51,6 +51,8 @@ func (s *TwitchAuthServer) Start() {
 		if err := Authenticate(s.clientID, s.browserHandler); err != nil {
 			log.Printf("unable to authenticate user: %v\n", err)
 		}
+
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	mux.HandleFunc("/redirect", func(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +78,9 @@ func (s *TwitchAuthServer) Start() {
 	go func() {
 		log.Printf("Twitch auth server started: listening on the port %s...\n", s.port)
 		if err := server.ListenAndServe(); err != nil {
-			log.Fatal(err)
+			if err != http.ErrServerClosed {
+				log.Fatal(err)
+			}
 		}
 	}()
 }

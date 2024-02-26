@@ -1,34 +1,43 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func (s *TestSuite) TestAuthentification(t *testing.T) {
-	req, err := http.NewRequest("GET", "http://localhost:7777/auth", nil)
-	if err != nil {
-		t.Fatalf("unable to create request: %v", err)
-	}
-
 	browserHandler := s.mocks["browserHandler"].(*browserHandlerMock)
 
-	_ = "http://localhost:7777/auth?client_id=client_id&force_verify=false&redirect_uri=http://localhost:7777/redirect&response_type=code&scope=chat:read&state=state"
 	mockCall := browserHandler.
 		On("Open", mock.Anything).
+		Run(func(args mock.Arguments) {
+			argUrl, err := url.Parse(args.Get(0).(string))
+			assert.NoError(t, err)
+
+			assert.Equal(t, "chat:read", argUrl.Query().Get("scope"))
+			assert.Equal(t, "false", argUrl.Query().Get("force_verify"))
+			assert.Equal(t, "code", argUrl.Query().Get("response_type"))
+			assert.Equal(t, "client_id", argUrl.Query().Get("client_id"))
+			assert.NoError(t, uuid.Validate(argUrl.Query().Get("state")))
+			assert.Equal(t, "http://localhost:7777/redirect", argUrl.Query().Get("redirect_uri"))
+		}).
 		Return(nil).
 		Times(1)
 
-	fmt.Println(mockCall.Arguments[0].(string))
-	client := http.Client{}
-	resp, err := client.Do(req)
-
+	req, err := http.NewRequest("GET", "http://localhost:7777/auth", nil)
 	assert.NoError(t, err)
-	assert.Equal(t, 200, resp.StatusCode)
 
+	client := http.Client{}
+
+	resp, err := client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+
+	browserHandler.AssertExpectations(t)
 	mockCall.Unset()
 }
