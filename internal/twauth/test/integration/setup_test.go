@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bytes"
 	"database/sql"
 	"log"
 	"os"
@@ -15,9 +16,12 @@ type TestSuite struct {
 	mocks            map[string]any
 	sqliteDB         *database.SqliteAdapter
 	twitchAuthServer *twauth.TwitchAuthServer
+	bufferLogger     *bytes.Buffer
 }
 
-func (s *TestSuite) beforeAll() {
+func (s *TestSuite) beforeAll(t *testing.T) {
+	t.Helper()
+
 	os.Setenv("CONSOLE_CHAT_SECRET", "secret")
 	os.Setenv("CONSOLE_CHAT_CLIENT_ID", "client_id")
 
@@ -29,14 +33,17 @@ func (s *TestSuite) beforeAll() {
 func TestMain(t *testing.T) {
 	setup := TestSuite{mocks: make(map[string]any)}
 
-	setup.beforeAll()
+	setup.beforeAll(t)
 
-	t.Run("TestAuthentification", setup.TestAuthentification)
+	setup.Run(t, "TestAuthentificationSuccess", setup.TestAuthentificationSuccess)
+	setup.Run(t, "TestAuthentificationError", setup.TestAuthentificationError)
 
-	setup.afterAll()
+	setup.afterAll(t)
 }
 
-func (s *TestSuite) afterAll() {
+func (s *TestSuite) afterAll(t *testing.T) {
+	t.Helper()
+
 	if err := s.sqliteDB.Db.Close(); err != nil {
 		log.Printf("unable to final roolback test sqlite tx: %v", err)
 	}
@@ -48,4 +55,18 @@ func (s *TestSuite) afterAll() {
 	if err := s.twitchAuthServer.Close(); err != nil {
 		log.Printf("unable to close server: %v", err)
 	}
+}
+
+func (s *TestSuite) Run(t *testing.T, name string, tFunc func(t *testing.T)) {
+	t.Helper()
+
+	s.beforeEach()
+	t.Run(name, tFunc)
+	s.afterEach()
+}
+
+func (s *TestSuite) beforeEach() {}
+
+func (s *TestSuite) afterEach() {
+	s.bufferLogger.Reset()
 }

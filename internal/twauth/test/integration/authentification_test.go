@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"testing"
@@ -10,7 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func (s *TestSuite) TestAuthentification(t *testing.T) {
+func (s *TestSuite) TestAuthentificationSuccess(t *testing.T) {
 	browserHandler := s.mocks["browserHandler"].(*browserHandlerMock)
 
 	mockCall := browserHandler.
@@ -39,5 +40,29 @@ func (s *TestSuite) TestAuthentification(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 
 	browserHandler.AssertExpectations(t)
+	mockCall.Unset()
+}
+
+func (s *TestSuite) TestAuthentificationError(t *testing.T) {
+	browserHandler := s.mocks["browserHandler"].(*browserHandlerMock)
+
+	mockCall := browserHandler.
+		On("Open", mock.Anything).
+		Return(errors.New("failed")).
+		Times(1)
+
+	req, err := http.NewRequest("GET", "http://localhost:7777/auth", nil)
+	assert.NoError(t, err)
+
+	client := http.Client{}
+
+	resp, err := client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	browserHandler.AssertExpectations(t)
+
+	assert.Contains(t, s.bufferLogger.String(), "unable to open browser for user authentification: failed")
+
 	mockCall.Unset()
 }

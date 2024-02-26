@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"bytes"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -41,12 +42,15 @@ func (s *TestSuite) main() error {
 
 	browserHandler := &browserHandlerMock{}
 
+	logBuf := &bytes.Buffer{}
+	bufferLogger := log.New(logBuf, "twitch-console-chat", log.LstdFlags)
 	twitchAuthServer := twauth.NewServer(twauth.TwitchAuthParams{
 		Repo:           sqliteDB,
 		ClientID:       clientID,
 		Secret:         secret,
 		Port:           ":7777",
 		BrowserHandler: browserHandler,
+		Logger:         bufferLogger,
 	})
 
 	twitchAuthServer.Start()
@@ -57,6 +61,7 @@ func (s *TestSuite) main() error {
 
 	s.dbConn = dbConn
 	s.sqliteDB = sqliteDB
+	s.bufferLogger = logBuf
 	s.twitchAuthServer = twitchAuthServer
 	s.mocks["browserHandler"] = browserHandler
 

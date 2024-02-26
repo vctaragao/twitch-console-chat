@@ -40,6 +40,7 @@ func main() {
 		Secret:         secret,
 		Port:           ":7777",
 		BrowserHandler: browser.NewBrowserHandler(),
+		Logger:         log.New(os.Stdout, "twitch-console-chat", log.LstdFlags),
 	})
 
 	twitchAuthServer.Start()

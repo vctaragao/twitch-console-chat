@@ -16,6 +16,7 @@ type (
 		clientID       string
 		secret         string
 		port           string
+		log            *log.Logger
 		browserHandler browser.BrowserHandler
 	}
 
@@ -24,6 +25,7 @@ type (
 		ClientID       string
 		Secret         string
 		Port           string
+		Logger         *log.Logger
 		BrowserHandler browser.BrowserHandler
 	}
 )
@@ -34,6 +36,7 @@ func NewServer(params TwitchAuthParams) *TwitchAuthServer {
 		clientID:       params.ClientID,
 		secret:         params.Secret,
 		port:           params.Port,
+		log:            params.Logger,
 		browserHandler: params.BrowserHandler,
 	}
 }
@@ -49,7 +52,9 @@ func (s *TwitchAuthServer) Start() {
 
 	mux.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
 		if err := Authenticate(s.clientID, s.browserHandler); err != nil {
-			log.Printf("unable to authenticate user: %v\n", err)
+			w.WriteHeader(http.StatusBadRequest)
+			s.log.Printf("unable to authenticate user: %+v\n", err)
+			return
 		}
 
 		w.WriteHeader(http.StatusNoContent)
@@ -64,7 +69,7 @@ func (s *TwitchAuthServer) Start() {
 		}
 
 		if err := authTokenService.AuthToken(s.clientID, s.secret, code); err != nil {
-			log.Printf("unable to fetch auth token: %v\n", err)
+			s.log.Printf("unable to fetch auth token: %v\n", err)
 		}
 	})
 
@@ -76,10 +81,10 @@ func (s *TwitchAuthServer) Start() {
 	s.server = &server
 
 	go func() {
-		log.Printf("Twitch auth server started: listening on the port %s...\n", s.port)
+		s.log.Printf("Twitch auth server started: listening on the port %s...\n", s.port)
 		if err := server.ListenAndServe(); err != nil {
 			if err != http.ErrServerClosed {
-				log.Fatal(err)
+				s.log.Fatal(err)
 			}
 		}
 	}()
