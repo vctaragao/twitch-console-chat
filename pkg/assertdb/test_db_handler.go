@@ -73,7 +73,7 @@ func (h *TestDBHandler) AssertInTable(t *testing.T, table string, expectedFields
 		values[i] = &v
 	}
 
-	assert.Truef(t, rows.Next(), "No record was found")
+	require.Truef(t, rows.Next(), fmt.Sprintf("No record was found in table %s, data: %s", table, expectedFields))
 	require.NoError(t, rows.Scan(values...))
 
 	data := make(map[string]any, len(columns))
@@ -82,6 +82,51 @@ func (h *TestDBHandler) AssertInTable(t *testing.T, table string, expectedFields
 	}
 
 	return data
+}
+
+func (h *TestDBHandler) CountInTable(t *testing.T, table string, size int, expectedFields map[string]any) []map[string]any {
+	t.Helper()
+
+	rows, err := h.dbTx.Query(h.buildWhere(t, table, expectedFields))
+	require.NoError(t, err)
+	if size == 0 {
+		assert.False(t, rows.Next(), "At least a record was found")
+		return []map[string]any{}
+	}
+
+	columns, err := rows.Columns()
+	require.NoError(t, err)
+
+	values := make([]any, len(columns))
+	for i := range values {
+		var v any
+		values[i] = &v
+	}
+
+	records := make([]map[string]any, 0, size)
+
+	require.NoError(t, rows.Scan(values...))
+	data := make(map[string]any, len(columns))
+	for i, colName := range columns {
+		data[colName] = *(values[i].(*any))
+	}
+
+	records = append(records, data)
+
+	for rows.Next() {
+		require.NoError(t, rows.Scan(values...))
+
+		data := make(map[string]any, len(columns))
+		for i, colName := range columns {
+			data[colName] = *(values[i].(*any))
+		}
+
+		records = append(records, data)
+	}
+
+	assert.Len(t, records, size)
+
+	return records
 }
 
 func (h *TestDBHandler) buildWhere(t *testing.T, table string, fields map[string]any) string {
