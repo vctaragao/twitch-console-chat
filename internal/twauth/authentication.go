@@ -8,14 +8,20 @@ import (
 	"github.com/vctaragao/twitch-chat/pkg/browser"
 )
 
-type twitchOAuthParams struct {
-	clientID     string
-	forceVerify  bool
-	redirectURI  string
-	responseType string
-	scope        string
-	state        string
-}
+type (
+	OpeningBrowserError struct {
+		Err error
+	}
+
+	twitchOAuthParams struct {
+		clientID     string
+		forceVerify  bool
+		redirectURI  string
+		responseType string
+		scope        string
+		state        string
+	}
+)
 
 func (t *twitchOAuthParams) parseIntoUrl(url string) string {
 	return fmt.Sprintf("%s?client_id=%s&force_verify=%v&redirect_uri=%s&response_type=%s&scope=%s&state=%s",
@@ -27,6 +33,10 @@ func (t *twitchOAuthParams) parseIntoUrl(url string) string {
 		t.scope,
 		t.state,
 	)
+}
+
+func (e OpeningBrowserError) Error() string {
+	return fmt.Sprintf("opening browser for user auth: %v", e.Err)
 }
 
 func Authenticate(clientID string, browserHandler browser.BrowserHandler) error {
@@ -41,11 +51,11 @@ func Authenticate(clientID string, browserHandler browser.BrowserHandler) error 
 
 	url, err := url.Parse(params.parseIntoUrl(TwitchOAuthUrl))
 	if err != nil {
-		return fmt.Errorf("unable to parse url: %w", err)
+		return fmt.Errorf("parsing url: %w", err)
 	}
 
 	if err := browserHandler.Open(url.String()); err != nil {
-		return fmt.Errorf("unable to open browser for user authentification: %w", err)
+		return OpeningBrowserError{Err: err}
 	}
 
 	return nil
