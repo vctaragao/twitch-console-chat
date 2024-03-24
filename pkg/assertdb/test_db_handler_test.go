@@ -28,12 +28,16 @@ func (s *AssertDBSuite) TestCountInTable() {
 		"id": userID,
 	})
 
-	_, err := s.testDBHandler.SeedTable(t, "users", map[string]any{
+	user, err := s.testDBHandler.SeedTable(t, "users", map[string]any{
 		"id": userID,
 	})
 	require.NoError(t, err)
 
 	s.testDBHandler.AssertInTable(t, "users", map[string]any{
-		"id": "1eee9ed0-559d-6b80-7a92-588444af3b04",
+		"id": user["id"],
+	})
+
+	s.testDBHandler.CountInTable(t, "users", 1, map[string]any{
+		"id": user["id"],
 	})
 }

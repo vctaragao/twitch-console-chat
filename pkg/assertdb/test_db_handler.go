@@ -103,14 +103,15 @@ func (h *TestDBHandler) CountInTable(t *testing.T, table string, size int, expec
 		values[i] = &v
 	}
 
-	records := make([]map[string]any, 0, size)
-
+	require.True(t, rows.Next(), "No record was found")
 	require.NoError(t, rows.Scan(values...))
+
 	data := make(map[string]any, len(columns))
 	for i, colName := range columns {
 		data[colName] = *(values[i].(*any))
 	}
 
+	records := make([]map[string]any, 0, size)
 	records = append(records, data)
 
 	for rows.Next() {
@@ -124,7 +125,7 @@ func (h *TestDBHandler) CountInTable(t *testing.T, table string, size int, expec
 		records = append(records, data)
 	}
 
-	assert.Len(t, records, size)
+	assert.Len(t, records, size, "It was expected %d records, but got %d", size, len(records))
 
 	return records
 }
